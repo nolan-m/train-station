@@ -27,7 +27,6 @@ def main_menu
   when 'a'
     schedule
   end
-
 end
 
 def administration
@@ -50,7 +49,6 @@ def administration
   when 'm'
     main_menu
   end
-
 end
 
 def add_station
@@ -65,10 +63,7 @@ end
 
 def list_stations
   puts "\nCurrent Stations:"
-
-  Station.all.each_with_index do |station, index|
-    puts "#{index + 1}.  #{station.location}"
-  end
+  show_stations
   puts "\nEnter a number to view all stops for that station"
   user_input = gets.chomp
   current_station = Station.all[user_input.to_i - 1]
@@ -87,10 +82,7 @@ end
 
 def add_stops(line)
   puts "What stations does this line stop at?"
-  Station.all.each_with_index do |station, index|
-    puts "#{index + 1}.  #{station.location}"
-  end
-
+  show_stations
   puts "Enter the station number"
   line_num = gets.chomp
 
@@ -106,7 +98,6 @@ def add_stops(line)
   if duplicate == false
     DB.exec("INSERT INTO stops (station_id, line_id) VALUES (#{current_station.id}, #{line.id});")
   end
-
   puts "Do you want to add another stop? Press 'y'"
   puts "Press any other key to return to admin menu"
   user_input = gets.chomp
@@ -120,24 +111,20 @@ end
 
 def list_lines
   puts "\nCurrent Lines:"
-  Line.all.each_with_index do |line, index|
-    puts "#{index + 1}.  #{line.color}"
-  end
+  show_lines
   puts "\nEnter a number to see the locations at which a line stops: "
   user_input = gets.chomp.to_i
-
   current_line = Line.all[user_input - 1]
+
   list_stops(current_line)
 end
 
 def list_stops(line)
-# puts DB.exec("SELECT * From lines INNER JOIN stops ON lines.id = stops.lines_id;")
-  results = DB.exec("SELECT * FROM stops WHERE line_id = #{line.id};")
+  results = DB.exec("SELECT * FROM stops INNER JOIN stations ON stops.station_id = stations.id
+                    WHERE stops.line_id = #{line.id};")
   puts "#{line.color} stops at these stations:"
   results.each do |result|
-    station_id = result['station_id']
-    station_names = DB.exec("SELECT * FROM stations WHERE id = #{station_id};")
-    station_names.each { |station| puts station['location'] }
+    puts result['location']
   end
   puts "Press any key to return to main menu"
   user_input = gets.chomp
@@ -148,12 +135,11 @@ def list_stops(line)
 end
 
 def list_lines_by_station(station)
-  results = DB.exec("SELECT * FROM stops WHERE station_id = #{station.id};")
+  results = DB.exec("SELECT * FROM stops INNER JOIN lines ON stops.line_id = lines.id
+                    WHERE stops.station_id = #{station.id};")
   puts "These lines run through #{station.location}:"
   results.each do |result|
-    line_id = result['line_id']
-    line_names = DB.exec("SELECT * FROM lines WHERE id = #{line_id};")
-    line_names.each { |line| puts line['color'] }
+    puts result['color']
   end
   puts "Press any key to return to main menu"
   user_input = gets.chomp
@@ -170,9 +156,7 @@ def delete
 
   case user_input
   when 's'
-    Station.all.each_with_index do |station, index|
-      puts "#{index + 1}. #{station.location}"
-    end
+    show_stations
 
     puts "Type the number to delete a station"
     user_delete = gets.chomp
@@ -185,9 +169,7 @@ def delete
     administration
 
   when 'l'
-    Line.all.each_with_index do |line, index|
-      puts "#{index + 1}. #{line.color}"
-    end
+    show_lines
 
     puts "Enter the number to delete a line"
     user_delete = gets.chomp
@@ -204,18 +186,14 @@ end
 
 def change_route
 
-  Line.all.each_with_index do |line, index|
-    puts "#{index + 1}. #{line.color}"
-  end
+  show_lines
 
   puts "Enter the number to change a line"
   user_change = gets.chomp
 
   current_line = Line.all[user_change.to_i - 1]
 
-  Station.all.each_with_index do |station, index|
-    puts "#{index + 1}. #{station.location}"
-  end
+  show_stations
 
   puts "Enter the number to add a station to #{current_line.color}"
   user_change = gets.chomp
@@ -241,4 +219,15 @@ def schedule
   main_menu
 end
 
+def show_stations
+  Station.all.each_with_index do |station, index|
+    puts "#{index + 1}. #{station.location}"
+  end
+end
+
+def show_lines
+  Line.all.each_with_index do |line, index|
+    puts "#{index + 1}. #{line.color}"
+  end
+end
 main_menu
